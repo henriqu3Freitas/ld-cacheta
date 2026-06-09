@@ -51,9 +51,28 @@
               playsinline
               preload="auto"
             ></video>
-            <button class="phone__sound-toggle" id="soundToggle" aria-label="Ativar/desativar som">
-              <span class="sound-icon">🔊</span>
-            </button>
+            <div class="phone__overlay">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+              <div class="phone__controls">
+                <button class="control-btn rewind-btn" id="rewindBtn" aria-label="Voltar 10 segundos">
+                  <span>⏪</span>
+                </button>
+                <button class="control-btn play-btn" id="playPauseBtn" aria-label="Pausar/Reproduzir">
+                  <span id="playPauseIcon">⏸</span>
+                </button>
+                <button class="control-btn forward-btn" id="forwardBtn" aria-label="Avançar 10 segundos">
+                  <span>⏩</span>
+                </button>
+                <div class="time-display">
+                  <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+                </div>
+                <button class="control-btn sound-btn" id="soundToggle" aria-label="Ativar/desativar som">
+                  <span class="sound-icon">🔊</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

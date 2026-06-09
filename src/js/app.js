@@ -9,34 +9,142 @@ const status = document.getElementById("leadStatus");
 const nameInput = document.getElementById("leadName");
 const phoneInput = document.getElementById("leadPhone");
 
-// Handle video autoplay
+// Handle video autoplay and controls
 function initializeVideo() {
   const video = document.getElementById("videoPlayer");
   const soundToggle = document.getElementById("soundToggle");
+  const playPauseBtn = document.getElementById("playPauseBtn");
+  const playPauseIcon = document.getElementById("playPauseIcon");
+  const rewindBtn = document.getElementById("rewindBtn");
+  const forwardBtn = document.getElementById("forwardBtn");
+  const progressBar = document.querySelector(".progress-bar");
+  const progressFill = document.getElementById("progressFill");
+  const currentTimeDisplay = document.getElementById("currentTime");
+  const durationDisplay = document.getElementById("duration");
+  const overlay = document.querySelector(".phone__overlay");
   
-  if (!video || !soundToggle) return;
+  if (!video) return;
 
   // Start unmuted
   video.muted = false;
+
+  // Format time helper
+  const formatTime = (seconds) => {
+    if (!isFinite(seconds)) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  };
+
+  // Update duration when metadata loads
+  video.addEventListener("loadedmetadata", () => {
+    durationDisplay.textContent = formatTime(video.duration);
+  });
+
+  // Update progress bar and time display
+  video.addEventListener("timeupdate", () => {
+    const percentage = (video.currentTime / video.duration) * 100;
+    progressFill.style.width = `${percentage}%`;
+    currentTimeDisplay.textContent = formatTime(video.currentTime);
+  });
+
+  // Update play/pause button based on video state
+  const updatePlayPauseIcon = () => {
+    playPauseIcon.textContent = video.paused ? "▶️" : "⏸";
+  };
+
+  // Handle play/pause toggle
+  playPauseBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (video.paused) {
+      video.play();
+    } else {
+      video.pause();
+    }
+    updatePlayPauseIcon();
+    overlay.classList.add("active");
+    setTimeout(() => overlay.classList.remove("active"), 3000);
+  });
+
+  // Handle rewind (10 seconds back)
+  rewindBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    video.currentTime = Math.max(0, video.currentTime - 10);
+    overlay.classList.add("active");
+    setTimeout(() => overlay.classList.remove("active"), 3000);
+  });
+
+  // Handle forward (10 seconds forward)
+  forwardBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    video.currentTime = Math.min(video.duration, video.currentTime + 10);
+    overlay.classList.add("active");
+    setTimeout(() => overlay.classList.remove("active"), 3000);
+  });
+
+  // Handle progress bar click
+  progressBar.addEventListener("click", (e) => {
+    const rect = progressBar.getBoundingClientRect();
+    const percentage = (e.clientX - rect.left) / rect.width;
+    video.currentTime = percentage * video.duration;
+    overlay.classList.add("active");
+    setTimeout(() => overlay.classList.remove("active"), 3000);
+  });
 
   // Handle sound toggle button
   soundToggle.addEventListener("click", (e) => {
     e.stopPropagation();
     video.muted = !video.muted;
     soundToggle.classList.toggle("muted", video.muted);
+    overlay.classList.add("active");
+    setTimeout(() => overlay.classList.remove("active"), 3000);
   });
 
-  // Ensure video plays
-  video.play().catch(() => {
-    // If autoplay fails, play on first user interaction
-    const playOnInteraction = () => {
-      video.play().catch((err) => console.log("Play error:", err));
-      document.removeEventListener("click", playOnInteraction);
-      document.removeEventListener("touchstart", playOnInteraction);
-    };
-    document.addEventListener("click", playOnInteraction);
-    document.addEventListener("touchstart", playOnInteraction);
+  // Update icon when video plays/pauses
+  video.addEventListener("play", updatePlayPauseIcon);
+  video.addEventListener("pause", updatePlayPauseIcon);
+
+  // Show overlay on video interaction
+  video.addEventListener("click", () => {
+    overlay.classList.add("active");
+    setTimeout(() => overlay.classList.remove("active"), 3000);
   });
+
+  // Force video to play on load
+  const tryToPlay = () => {
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("Video playing automatically");
+          updatePlayPauseIcon();
+        })
+        .catch((error) => {
+          console.log("Autoplay prevented:", error);
+          // Try again on first user interaction
+          const playOnInteraction = () => {
+            video.play().catch((err) => console.log("Play error:", err));
+            updatePlayPauseIcon();
+            overlay.classList.add("active");
+            setTimeout(() => overlay.classList.remove("active"), 3000);
+            document.removeEventListener("click", playOnInteraction);
+            document.removeEventListener("touchstart", playOnInteraction);
+          };
+          document.addEventListener("click", playOnInteraction, { once: true });
+          document.addEventListener("touchstart", playOnInteraction, { once: true });
+        });
+    }
+  };
+
+  // Try to play immediately if video is ready
+  if (video.readyState >= 2) {
+    tryToPlay();
+  } else {
+    video.addEventListener("canplay", tryToPlay, { once: true });
+  }
+
+  // Also try after a short delay
+  setTimeout(tryToPlay, 500);
 }
 
 // Initialize video when DOM is ready
