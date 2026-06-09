@@ -9,6 +9,45 @@ const status = document.getElementById("leadStatus");
 const nameInput = document.getElementById("leadName");
 const phoneInput = document.getElementById("leadPhone");
 
+// Handle video autoplay
+function initializeVideo() {
+  const video = document.getElementById("videoPlayer");
+  const soundToggle = document.getElementById("soundToggle");
+  
+  if (!video || !soundToggle) return;
+
+  // Start unmuted
+  video.muted = false;
+
+  // Handle sound toggle button
+  soundToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    video.muted = !video.muted;
+    soundToggle.classList.toggle("muted", video.muted);
+  });
+
+  // Ensure video plays
+  video.play().catch(() => {
+    // If autoplay fails, play on first user interaction
+    const playOnInteraction = () => {
+      video.play().catch((err) => console.log("Play error:", err));
+      document.removeEventListener("click", playOnInteraction);
+      document.removeEventListener("touchstart", playOnInteraction);
+    };
+    document.addEventListener("click", playOnInteraction);
+    document.addEventListener("touchstart", playOnInteraction);
+  });
+}
+
+// Initialize video when DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeVideo);
+} else {
+  initializeVideo();
+}
+
+// ...existing code...
+
 function openModal() {
   modal.classList.add("is-open");
   modal.setAttribute("aria-hidden", "false");

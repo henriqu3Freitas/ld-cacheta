@@ -233,6 +233,34 @@ input:focus-visible {
   transform: scale(1.02);
 }
 
+.phone__sound-toggle {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.phone__sound-toggle:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.1);
+}
+
+.phone__sound-toggle.muted .sound-icon {
+  opacity: 0.5;
+}
+
 .floating-whatsapp {
   position: fixed;
   right: 24px;
