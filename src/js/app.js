@@ -1,12 +1,14 @@
 const SUPABASE_URL = "https://madnbhxirczgzwhpqmio.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_CGg3mfoZyaR00fTOJf7RcQ_SLXwILni";
-const DESTINATION_URL = "https://cacheta.app.link/3H1s6n";
+const DESTINATION_URL = "https://cacheta.app.link/WI4K0q";
+const META_CAPI_ENDPOINT = "/api/meta-capi";
 
 const openTrigger = document.getElementById("openLeadForm");
 const modal = document.getElementById("leadModal");
 const form = document.getElementById("leadForm");
 const status = document.getElementById("leadStatus");
 const nameInput = document.getElementById("leadName");
+const emailInput = document.getElementById("leadEmail");
 const phoneInput = document.getElementById("leadPhone");
 
 // Handle video autoplay and controls
@@ -172,6 +174,10 @@ function normalizePhone(value) {
   return value.replace(/\D+/g, "");
 }
 
+function normalizeEmail(value) {
+  return value.trim().toLowerCase().replace(/\s+/g, "");
+}
+
 function formatPhone(value) {
   const digits = normalizePhone(value).slice(0, 11);
 
@@ -204,6 +210,22 @@ function setSubmitting(isSubmitting) {
   form.querySelector(".lead-form__submit").disabled = isSubmitting;
 }
 
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function formatEmail(value) {
+  return normalizeEmail(value);
+}
+
+function createEventId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function openDestination() {
   const destination = window.open(DESTINATION_URL, "_blank", "noopener,noreferrer");
 
@@ -230,6 +252,36 @@ async function saveLeadToSupabase(payload) {
   }
 }
 
+async function trackLeadConversion(payload) {
+  const eventId = createEventId();
+
+  if (typeof window.fbq === "function") {
+    window.fbq("track", "Lead", { content_name: "Formulário Cacheta" }, { eventID: eventId });
+  }
+
+  try {
+    const response = await fetch(META_CAPI_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...payload,
+        eventId,
+        pageUrl: window.location.href,
+        userAgent: navigator.userAgent,
+      }),
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || "Não foi possível enviar a conversão para a Meta.");
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 openTrigger.addEventListener("click", (event) => {
   event.preventDefault();
   openModal();
@@ -242,6 +294,10 @@ phoneInput.addEventListener("input", () => {
   if (phoneInput.value.length > previousLength) {
     phoneInput.setSelectionRange(phoneInput.value.length, phoneInput.value.length);
   }
+});
+
+emailInput.addEventListener("input", () => {
+  emailInput.value = formatEmail(emailInput.value);
 });
 
 modal.addEventListener("click", (event) => {
@@ -260,10 +316,13 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const name = nameInput.value.trim();
+  const email = normalizeEmail(emailInput.value);
   const phone = normalizePhone(phoneInput.value);
 
-  if (!name || phone.length < 10) {
-    setStatus("Preencha nome e telefone válidos.", "error");
+  emailInput.value = email;
+
+  if (!name || !isValidEmail(email) || phone.length < 10) {
+    setStatus("Preencha nome, e-mail e telefone válidos.", "error");
     return;
   }
 
@@ -273,6 +332,13 @@ form.addEventListener("submit", async (event) => {
   try {
     await saveLeadToSupabase({
       name,
+      email,
+      phone,
+    });
+
+    await trackLeadConversion({
+      name,
+      email,
       phone,
     });
 
